@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mini Pokémon Clone</title>
+  <style>
+    body { margin: 0; background: #000; }
+    canvas { display: block; margin: auto; background: #000; image-rendering: pixelated; }
+    #dialogueBox {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      color: black;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 6px;
+      border: 2px solid black;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="160" height="144"></canvas>
+  <div id="dialogueBox"></div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const TILE_SIZE = 16;
+
+    const map = [
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,1,1,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1],
+    ];
+
+    const player = { x: 2, y: 2 };
+    const npc = { x: 4, y: 4, message: "Hi! I'm an NPC!" };
+
+    const images = {};
+    const toLoad = {
+      player: "https://i.imgur.com/JN6yGUF.png",
+      npc: "https://i.imgur.com/jL5Z6Qv.png",
+      grass: "https://i.imgur.com/mnKWSCR.png",
+      wall: "https://i.imgur.com/Xbxt1iP.png"
+    };
+
+    const dialogueBox = document.getElementById("dialogueBox");
+
+    function loadImages(callback) {
+      let loaded = 0;
+      const total = Object.keys(toLoad).length;
+      for (let key in toLoad) {
+        const img = new Image();
+        img.src = toLoad[key];
+        img.onload = () => {
+          images[key] = img;
+          loaded++;
+          if (loaded === total) callback();
+        };
+      }
+    }
+
+    function drawMap() {
+      for (let y = 0; y < map.length; y++) {
+        for (let x = 0; x < map[0].length; x++) {
+          const tile = map[y][x] === 1 ? images.wall : images.grass;
+          ctx.drawImage(tile, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+      }
+    }
+
+    function drawCharacter(img, x, y) {
+      ctx.drawImage(img, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+
+    function draw() {
+      drawMap();
+      drawCharacter(images.npc, npc.x, npc.y);
+      drawCharacter(images.player, player.x, player.y);
+    }
+
+    function canMove(x, y) {
+      return map[y] && map[y][x] === 0 && !(x === npc.x && y === npc.y);
+    }
+
+    function isNextToNPC() {
+      const dx = Math.abs(player.x - npc.x);
+      const dy = Math.abs(player.y - npc.y);
+      return (dx + dy === 1); // Manhattan distance = 1
+    }
+
+    window.addEventListener("keydown", (e) => {
+      let newX = player.x;
+      let newY = player.y;
+
+      if (e.key === "ArrowUp") newY--;
+      else if (e.key === "ArrowDown") newY++;
+      else if (e.key === "ArrowLeft") newX--;
+      else if (e.key === "ArrowRight") newX++;
+      else if (e.key.toLowerCase() === "z" && isNextToNPC()) {
+        dialogueBox.innerText = npc.message;
+        dialogueBox.style.display = "block";
+        return;
+      }
+
+      if (canMove(newX, newY)) {
+        player.x = newX;
+        player.y = newY;
+        dialogueBox.style.display = "none";
+      }
+
+      draw();
+    });
+
+    loadImages(draw);
+  </script>
+</body>
+</html>
