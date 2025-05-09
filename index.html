@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mini Pokémon Clone</title>
+  <title>Pokémon Battle Demo</title>
   <style>
-    body { margin: 0; background: #000; }
-    canvas { display: block; margin: auto; background: #000; image-rendering: pixelated; }
+    body { margin: 0; background: #000; overflow: hidden; font-family: monospace; }
+    canvas { display: block; margin: auto; image-rendering: pixelated; }
     #dialogueBox {
       position: absolute;
       bottom: 10px;
@@ -14,11 +14,11 @@
       transform: translateX(-50%);
       background: white;
       color: black;
-      font-family: monospace;
-      font-size: 14px;
-      padding: 6px;
+      padding: 8px;
       border: 2px solid black;
       display: none;
+      width: 220px;
+      text-align: center;
     }
   </style>
 </head>
@@ -28,13 +28,13 @@
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
-    const TILE_SIZE = 16;
+    const TILE = 16;
 
     const map = [
       [1,1,1,1,1,1,1,1,1,1],
       [1,0,0,0,0,0,0,0,0,1],
       [1,0,0,0,0,0,0,0,0,1],
-      [1,0,0,0,1,1,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,1],
       [1,0,0,0,0,0,0,0,0,1],
       [1,0,0,0,0,0,0,0,0,1],
       [1,0,0,0,0,0,0,0,0,1],
@@ -43,79 +43,127 @@
     ];
 
     const player = { x: 2, y: 2 };
-    const npc = { x: 4, y: 4, message: "Hi! I'm an NPC!" };
-
-    const images = {};
-    const toLoad = {
-      player: "https://i.imgur.com/JN6yGUF.png",
-      npc: "https://i.imgur.com/jL5Z6Qv.png",
-      grass: "https://i.imgur.com/mnKWSCR.png",
-      wall: "https://i.imgur.com/Xbxt1iP.png"
-    };
-
     const dialogueBox = document.getElementById("dialogueBox");
 
+    const images = {};
+    const base64 = {
+      player: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAVFBMVEUAAAD///8ZGRn39/fn5+fMzMy3t7eSkpLBwcHFxcXk5OTv7+/U1NTZ2dnZ2dnAwMBcXFzs7OxVVVXu7u7q6uqFhYUdHR0jIyOvr6+WlpYjWUKOAAAAHHRSTlMAERIRFCEwOEVHLi0EAgEGCg1Mk5yio6yytLh0hMbQ8PgAAAFpJREFUGNNVzUsSgjAQBdFlWmpX9f7/LxXKGBRxKrA4X8Bh/50wkyYhmKZfWkb4Br3LTI2N5ZtWE1ZJq5Nnx9sxgfKWHrKwvMA0vHTdSSV97Cq33qql+49bd4AOYoUhsAa74OwAAAABJRU5ErkJggg==",
+      grass: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAQlBMVEUAAAD+/v7///+qqqqampqOjo6VlZWjo6Ofn5+Tk5Orq6uxsbGZmZmQkJCWlpa2trZ5eXl4eHiMjIxRUVEyMjKYRch8AAAAF3RSTlMAAQIEBQoNEB0dJyspKy4vOExUXq+mquVAAABASURBVBjTY2AgDGAEYmAQLBwY2Dh4OBgZGRgYGBg4OLi4eHiIqLh4OHg4uHi4OLgYmBhYmLgAADyQgAcyvdVLgAAAABJRU5ErkJggg==",
+      wall: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAQlBMVEUAAAD///+np6eOjo6UlJSoqKiXl5eSkpL29vbx8fHl5eXExMSjo6NtbW3AwMC3t7ehoaGNjY2+vr5xcXG9vb2cnJxuGq0FAAAAFnRSTlMAAQIGCw0TGyA5PUlXYG1+gYqUr7S4vcAAAEFJREFUGNNlzccSgjAUBeFQqLUX/f8/V7HgOEJ4AgErvyv7JBBi+EGv1Yd3pK3ZTuZ5Tn9uoxErfTqss1xHF+Kc2ZB5cApOZdr41qvYO5rzVZBXe5Q9h2R1cvEnw2gv9yXy0vnhxhG3SAAAAAElFTkSuQmCC"
+    };
+
     function loadImages(callback) {
-      let loaded = 0;
-      const total = Object.keys(toLoad).length;
-      for (let key in toLoad) {
+      let loaded = 0, keys = Object.keys(base64);
+      keys.forEach(key => {
         const img = new Image();
-        img.src = toLoad[key];
+        img.src = base64[key];
         img.onload = () => {
           images[key] = img;
-          loaded++;
-          if (loaded === total) callback();
+          if (++loaded === keys.length) callback();
         };
-      }
+      });
     }
 
     function drawMap() {
       for (let y = 0; y < map.length; y++) {
         for (let x = 0; x < map[0].length; x++) {
           const tile = map[y][x] === 1 ? images.wall : images.grass;
-          ctx.drawImage(tile, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          ctx.drawImage(tile, x*TILE, y*TILE, TILE, TILE);
         }
       }
     }
 
-    function drawCharacter(img, x, y) {
-      ctx.drawImage(img, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    function drawPlayer() {
+      ctx.drawImage(images.player, player.x*TILE, player.y*TILE, TILE, TILE);
     }
 
     function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawMap();
-      drawCharacter(images.npc, npc.x, npc.y);
-      drawCharacter(images.player, player.x, player.y);
+      drawPlayer();
+    }
+
+    let inBattle = false;
+    let battle = {
+      playerHP: 100,
+      wildHP: 50,
+      message: "",
+      wildCaught: false
+    };
+
+    function startBattle() {
+      inBattle = true;
+      battle = {
+        playerHP: 100,
+        wildHP: 50,
+        message: "A wild ZORP appeared!",
+        wildCaught: false
+      };
+      showDialogue(battle.message + "\nPick attack: 1-4");
+    }
+
+    function handleBattleKey(key) {
+      if (["1", "2", "3", "4"].includes(key)) {
+        const damage = Math.floor(Math.random() * 15) + 5;
+        battle.wildHP -= damage;
+        battle.message = `You used move ${key}! It did ${damage} damage.`;
+
+        if (battle.wildHP <= 0) {
+          battle.message += "\nZORP fainted!";
+          inBattle = false;
+        } else {
+          const enemyHit = Math.floor(Math.random() * 10) + 3;
+          battle.playerHP -= enemyHit;
+          battle.message += `\nZORP hit back for ${enemyHit}!`;
+
+          if (battle.playerHP <= 0) {
+            battle.message += "\nYou fainted!";
+            inBattle = false;
+          }
+        }
+        showDialogue(battle.message + (inBattle ? "\nPress 1–4 or C to catch" : ""));
+      } else if (key === "c" && battle.wildHP < 30) {
+        battle.message = "You threw a Poké Ball...";
+        if (Math.random() < 0.6) {
+          battle.message += "\nYou caught ZORP!";
+          battle.wildCaught = true;
+        } else {
+          battle.message += "\nIt broke free!";
+        }
+        inBattle = false;
+        showDialogue(battle.message);
+      } else if (key === "c") {
+        showDialogue("Too strong! Weaken first.");
+      }
+    }
+
+    function showDialogue(text) {
+      dialogueBox.innerText = text;
+      dialogueBox.style.display = "block";
+    }
+
+    function hideDialogue() {
+      dialogueBox.style.display = "none";
     }
 
     function canMove(x, y) {
-      return map[y] && map[y][x] === 0 && !(x === npc.x && y === npc.y);
+      return map[y] && map[y][x] === 0;
     }
 
-    function isNextToNPC() {
-      const dx = Math.abs(player.x - npc.x);
-      const dy = Math.abs(player.y - npc.y);
-      return (dx + dy === 1); // Manhattan distance = 1
-    }
+    window.addEventListener("keydown", e => {
+      if (inBattle) return handleBattleKey(e.key.toLowerCase());
 
-    window.addEventListener("keydown", (e) => {
-      let newX = player.x;
-      let newY = player.y;
-
+      let newX = player.x, newY = player.y;
       if (e.key === "ArrowUp") newY--;
       else if (e.key === "ArrowDown") newY++;
       else if (e.key === "ArrowLeft") newX--;
       else if (e.key === "ArrowRight") newX++;
-      else if (e.key.toLowerCase() === "z" && isNextToNPC()) {
-        dialogueBox.innerText = npc.message;
-        dialogueBox.style.display = "block";
-        return;
-      }
 
       if (canMove(newX, newY)) {
         player.x = newX;
         player.y = newY;
-        dialogueBox.style.display = "none";
+        hideDialogue();
+        if (Math.random() < 0.25) startBattle();
       }
 
       draw();
